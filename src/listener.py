@@ -67,7 +67,7 @@ P = 1  # Initial covariance
 
 pub1 = rospy.Publisher('/filtered_dta', Float64, queue_size=10)
 pub2 = rospy.Publisher('/originalwrench', Float64,queue_size=10)
-pub3 = rospy.Publisher('/kalman',Float64,queue_size=10)
+#pub3 = rospy.Publisher('/kalman',Float64,queue_size=10)
 
 def callback(data):
     #global FX
@@ -84,24 +84,29 @@ def callback(data):
 
     #print(fx)
 
-    #FX = []
-    #FX.append(fx)
+    FX = []
+    FY = []
+    FZ = []
 
+    TX = []
+    TY = []
+    TZ = []
 
-    #fs = 124.956672444 #sampling frequency len(fx)/57.7 subject to change
+    fs = 124.956672444 #sampling frequency len(fx)/57.7 subject to change
 
-    #fc = 1 # Cut-off frequency of the filter
-    #w = fc / (fs / 2) # Normalize the frequency
-    #b, a = signal.butter(5, w, 'low')
+    fc = 1 # Cut-off frequency of the filter
+    w = fc / (fs / 2) # Normalize the frequency
+    b, a = signal.butter(5, w, 'low')
 
-    #fx = signal.lfilter(b, a, fx,axis=0) #Forward filter
-    #fy = signal.lfilter(b, a, fy,axis=0)
-    #fz = signal.lfilter(b, a, fz,axis=0)
+    FX = append.signal.lfilter(b, a, fx,axis=0) #Forward filter
+    FY = append.signal.lfilter(b, a, fy,axis=0)
+    FZ = append.signal.lfilter(b, a, fz,axis=0)
 
-    #tx = signal.lfilter(b, a, tx,axis=0)
-    #ty = signal.lfilter(b, a, ty,axis=0)
-    #tz = signal.lfilter(b, a, tz,axis=0)
+    TX = append.signal.lfilter(b, a, tx,axis=0)
+    TY = append.signal.lfilter(b, a, ty,axis=0)
+    TZ = append.signal.lfilter(b, a, tz,axis=0)
 
+   
     ############################################################################
 
     #filter_ = Butter(btype="lowpass", cutoff=1, rolloff=120, sampling=124.956672444)
@@ -128,8 +133,9 @@ def callback(data):
     #FX = mean(readings)
     ####################################################################
 
+    #Single State Kalman Filter
    
-    kalman_filter_fx = SingleStateKalmanFilter(A, B, C, x, P, Q, R)
+    '''kalman_filter_fx = SingleStateKalmanFilter(A, B, C, x, P, Q, R)
     kalman_filter_fy = SingleStateKalmanFilter(A, B, C, x, P, Q, R)
     kalman_filter_fz = SingleStateKalmanFilter(A, B, C, x, P, Q, R)
 
@@ -146,15 +152,15 @@ def callback(data):
     kalman_filter_est_ty = []
     kalman_filter_est_tz = []
 
-    #fx5_filter = MovingAverageFilter(1000)
-    #fx50_filter = MovingAverageFilter(50)
+    fx5_filter = MovingAverageFilter(1000)
+    fx50_filter = MovingAverageFilter(50)
 
-    #fx5_filter_est = []
-    #fx50_filter_est = []
+    fx5_filter_est = []
+    fx50_filter_est = []
 
 
-    #fx5_filter.step(fx)
-    #fx5_filter_est.append(fx5_filter.current_state())
+    fx5_filter.step(fx)
+    fx5_filter_est.append(fx5_filter.current_state())
 
     kalman_filter_fx.step(0, fx)
     kalman_filter_fy.step(0, fy)
@@ -186,7 +192,11 @@ def callback(data):
     #fx50_filter_est.append(fx50_filter.current_state())
     pub1.publish(Float64(fy))
     #pub2.publish(Float64(fx5_filter_est[0]))
-    pub3.publish(Float64(kalman_filter_est_fy[0]))
+    pub3.publish(Float64(kalman_filter_est_fy[0]))'''
+
+    pub1.publish(Float64(fy))
+    pub2.publish(Float64(FX[0])
+
 
 
 def listener():
