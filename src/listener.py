@@ -39,20 +39,23 @@
 import sys
 import rospy
 from geometry_msgs.msg import WrenchStamped
+from geometry_msgs.msg import Wrench
+from geometry_msgs.msg import Vector3
 import time
 import math
 import string
 from scipy import signal
-from butterworth import Butter
-import LowPassFiltering
-import matplotlib.pyplot as plt
-import matplotlib.animation as animation
-from std_msgs.msg import Float64
+import Stewart
+
+from butterworth import Butter #dont use
+import LowPassFiltering #dont use
+
+from std_msgs.msg import Float64 #need for publishing
 
 import numpy as np
-from pylab import ylim, title, ylabel, xlabel
-import matplotlib.pyplot as plt
+
 from kalman import SingleStateKalmanFilter
+
 from moving_average import MovingAverageFilter
 
 A = 1  # No process innovation
@@ -65,16 +68,19 @@ P = 1  # Initial covariance
 
 #FX = 0
 
-pub1 = rospy.Publisher('/filtered_dta', Float64, queue_size=10)
-pub2 = rospy.Publisher('/originalwrench', Float64,queue_size=10)
-#pub3 = rospy.Publisher('/kalman',Float64,queue_size=10)
+#pub1 = rospy.Publisher('/unfiltered', Float64, queue_size=10)
+#pub2 = rospy.Publisher('/lowpass',Float64,queue_size=10)
+
+pub3 = rospy.Publisher('/filtered_wrench',Wrench,queue_size=10)
+
+
+#Publish Haptic Device Joint angles
+
 
 def callback(data):
-    #global FX
+    
     time = data.header.stamp.secs  +  data.header.stamp.nsecs * 1e-9
-    #print(time)
-
-
+    
     fx = data.wrench.force.x
     fy = data.wrench.force.y
     fz = data.wrench.force.z
@@ -82,9 +88,9 @@ def callback(data):
     ty = data.wrench.torque.y
     tz = data.wrench.torque.z
 
-    #print(fx)
+    #print(type(fx))
 
-    FX = []
+    '''FX = []
     FY = []
     FZ = []
 
@@ -92,19 +98,30 @@ def callback(data):
     TY = []
     TZ = []
 
-    fs = 124.956672444 #sampling frequency len(fx)/57.7 subject to change
+    FX.append(fx)
+    FY.append(fy)
+    FZ.append(fz)
 
-    fc = 1 # Cut-off frequency of the filter
-    w = fc / (fs / 2) # Normalize the frequency
-    b, a = signal.butter(5, w, 'low')
+    TX.append(tx)
+    TY.append(ty)
+    TZ.append(tz)'''
 
-    FX = append.signal.lfilter(b, a, fx,axis=0) #Forward filter
-    FY = append.signal.lfilter(b, a, fy,axis=0)
-    FZ = append.signal.lfilter(b, a, fz,axis=0)
+    ######################################################################
 
-    TX = append.signal.lfilter(b, a, tx,axis=0)
-    TY = append.signal.lfilter(b, a, ty,axis=0)
-    TZ = append.signal.lfilter(b, a, tz,axis=0)
+    #fs = 124.956672444 #sampling frequency len(fx)/57.7 subject to change
+
+    #fc = 53 # Cut-off frequency of the filter
+    #w = fc / (fs / 2) # Normalize the frequency
+    #b, a = signal.butter(5, w, 'low')
+
+
+    #fx_low = signal.lfilter(b, a, [fx]) #Forward filter
+    #fy_low = signal.lfilter(b, a, [fy])
+    #fz_low = signal.lfilter(b, a, [fz])
+
+    #tx_low = signal.lfilter(b, a, [tx])
+    #ty_low = signal.lfilter(b, a, [ty])
+    #tz_low = signal.lfilter(b, a, [tz])
 
    
     ############################################################################
@@ -135,7 +152,7 @@ def callback(data):
 
     #Single State Kalman Filter
    
-    '''kalman_filter_fx = SingleStateKalmanFilter(A, B, C, x, P, Q, R)
+    kalman_filter_fx = SingleStateKalmanFilter(A, B, C, x, P, Q, R)
     kalman_filter_fy = SingleStateKalmanFilter(A, B, C, x, P, Q, R)
     kalman_filter_fz = SingleStateKalmanFilter(A, B, C, x, P, Q, R)
 
@@ -190,13 +207,19 @@ def callback(data):
 
     #fx50_filter.step(fx)
     #fx50_filter_est.append(fx50_filter.current_state())
-    pub1.publish(Float64(fy))
+    #pub1.publish(Float64(fx))
     #pub2.publish(Float64(fx5_filter_est[0]))
-    pub3.publish(Float64(kalman_filter_est_fy[0]))'''
+    #pub2.publish(Float64(fx_low))
 
-    pub1.publish(Float64(fy))
-    pub2.publish(Float64(FX[0])
 
+
+    #pub1.publish(Float64(fy))
+    #pub2.publish(Float64(FX[0])
+
+    pub3.publish(Wrench(Vector3(fx+15,fz,-fy+25),Vector3(tx,tz,-ty)))
+
+    #Stewart.setPos([fx_k / .5, fy_k / .5, fz_k / 2, tx_k * .1, ty_k * -.1, tz_k *-.1]) #ur3 and hebi
+    Stewart.setPos([(fx+15) / .5, fz / .5, ((-fy)+25) / 2, tx * .1, tz * -.1, -ty *-.1]) #sia5
 
 
 def listener():
@@ -208,7 +231,7 @@ def listener():
     # run simultaneously.
     rospy.init_node('listener', anonymous=False)
 
-    rospy.Subscriber('/wrench', WrenchStamped, callback)
+    rospy.Subscriber('/netft/netft_data', WrenchStamped, callback)
     #pub.publish('/filtered_dta',Float64(FX))
 
     # spin() simply keeps python from exiting until this node is stopped
